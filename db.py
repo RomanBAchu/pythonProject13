@@ -1,5 +1,7 @@
 import psycopg2
+
 from config import *
+
 
 # Подключение к Базе Данных
 def connect_to_database():
@@ -10,6 +12,7 @@ def connect_to_database():
         dbname=db_name,
         port=port
     )
+
 
 # Создание таблицы seen_users
 def create_table_seen_users(connection):
@@ -24,6 +27,7 @@ def create_table_seen_users(connection):
     cursor.close()
     print("(SQL) Таблица seen_users = ok")
 
+
 # Проверка наличия в таблицы seen_users
 def check_seen_user(connection, vk_id):
     cursor = connection.cursor()
@@ -32,13 +36,28 @@ def check_seen_user(connection, vk_id):
     cursor.close()
     return result
 
+
 # Добавление данных в таблицу seen_users
 def insert_data_seen_users(connection, vk_id, offset):
     cursor = connection.cursor()
+
+    # cursor = connection.cursor()
+
+    # Проверяем, существует ли запись с таким же vk_id
+    cursor.execute('SELECT vk_id FROM seen_users WHERE vk_id = %s;', (vk_id,))
+    existing_row = cursor.fetchone()
+
+    # Если запись с таким vk_id уже существует, пропускаем вставку
+    if existing_row:
+        return
+
+    # Вставляем новую запись с vk_id
     cursor.execute('INSERT INTO seen_users (vk_id) VALUES (%s);', (vk_id,))
+
     connection.commit()
     cursor.close()
     print(f"(SQL) Запись seen user: {vk_id}")
+
 
 # Удаление таблицы seen_users
 def remove_table_seen_users(connection):
@@ -47,6 +66,7 @@ def remove_table_seen_users(connection):
     connection.commit()
     cursor.close()
     print("(SQL) Таблица seen_users удалена")
+
 
 # Отключение от Базы Данных
 def disconnect_from_database(connection):
