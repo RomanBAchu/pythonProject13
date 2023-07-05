@@ -59,13 +59,21 @@ def insert_data_seen_users(connection, vk_id, offset):
     print(f"(SQL) Запись seen user: {vk_id}")
 
 
-# Удаление таблицы seen_users
+# Удаление таблицы seen_users. Трай... нужен, чтоб не было ошибки
+# при удалении удалённой базы
 def remove_table_seen_users(connection):
-    cursor = connection.cursor()
-    cursor.execute('DROP TABLE IF EXISTS seen_users;')
-    connection.commit()
-    cursor.close()
-    print("(SQL) Таблица seen_users удалена")
+    try:
+        cursor = connection.cursor()
+        cursor.execute('DROP TABLE IF EXISTS seen_users;')
+        cursor.execute(
+            'CREATE TABLE seen_users (vk_id VARCHAR(255) PRIMARY KEY);')
+        connection.commit()
+        print("(SQL) Таблица seen_users создана")
+    except Exception as e:
+        connection.rollback()
+        print("(SQL) Ошибка при создании таблицы seen_users:", e)
+    finally:
+        cursor.close()
 
 
 # Отключение от Базы Данных
