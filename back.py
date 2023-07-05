@@ -25,24 +25,35 @@ class VkTools:
         self.shown_profiles = []
 
     def _bdate_to_year(self, bdate):
-        user_year = bdate.split('.')[2]
-        now = datetime.now().year
-        return now - int(user_year)
+        user_year = int(bdate.split('.')[2])
+        current_year = datetime.now().year
+        age = current_year - user_year
+        return age
 
     def get_profile_info(self, user_id):
         # Получение информации о профиле пользователя
         try:
-            info, = self.vkapi.method('users.get', {'user_id': user_id, 'fields': 'city,sex,relation,bdate'})
-            logging.info(f"С ботом поздоровался пользователь - https://vk.com/id{user_id}")
+            info, = self.vkapi.method(
+                'users.get',
+                {'user_id': user_id, 'fields': 'city,sex,relation,bdate'})
+            logging.info(
+                f"С ботом поздоровался пользователь - "
+                f"https://vk.com/id{user_id}")
         except ApiError as e:
             info = {}
-            logging.error(f"Ошибка при получении информации о профиле пользователя {user_id}: {e}")
+            logging.error(
+                f"Ошибка при получении информации о профиле "
+                f"пользователя {user_id}: {e}")
 
-        result = {'name': (info['first_name'] + ' ' + info['last_name']) if 'first_name' in info and 'last_name' in info else None,
-                  'sex': info.get('sex'),
-                  'city': info.get('city')['title'] if info.get('city') is not None else None,
-                  'year': self._bdate_to_year(info.get('bdate'))
-                  }
+        result = {
+            'name': (
+                    info['first_name'] + ' ' + info['last_name']
+            ) if 'first_name' in info and 'last_name' in info else None,
+            'sex': info.get('sex'),
+            'city': info.get('city')['title'] if info.get(
+                'city') is not None else None,
+            'year': self._bdate_to_year(info.get('bdate'))
+        }
         return result
 
     def search_worksheet(self, params, offset):
@@ -51,40 +62,41 @@ class VkTools:
                 hometown = params['city']
             else:
                 hometown = ''
-            users = self.vkapi.method('users.search',
-                                      {
-                                          'count': 50,
-                                          'offset': offset,
-                                          'hometown': hometown,
-                                          # 'sex': 1 if params['sex'] == 2 else 2,
-                                          'sex': 1 if params.get('sex') == 2 else 2,
-                                          'has_photo': True,
-                                          # 'age_from': params['year'] - 5,
-                                          # 'age_to': params['year'] + 5,
-                                          'age_from': params.get('year') - 5 if params.get('year') else None,
-                                          'age_to': params.get('year') + 5 if params.get('year') else None,
-                                          'online': 1
-                                      }
-                                      )
+
+            if 'marital_status' in params:  # Добавленная проверка для семейного положения
+                marital_status = params['marital_status']
+            else:
+                marital_status = None
+
+            users = self.vkapi.method('users.search', {
+                'count': 50,
+                'offset': offset,
+                'hometown': hometown,
+                'sex': 1 if params.get('sex') == 2 else 2,
+                'has_photo': True,
+                'age_from': int(params.get('year')) - 10 if params.get(
+                    'year') else None,
+                'age_to': int(params.get('year')) + 10 if params.get(
+                    'year') else None,
+                'online': 1,
+                'relation': 6,
+                'online_mobile': 1
+                # Добавленный параметр для поиска только актив
+
+            })
         except ApiError as e:
             users = []
             print(f'error = {e}')
 
-
-
-
-        # result = [{'name': item['first_name'] + ' ' + item['last_name'],
-        #            'id': item['id']
-        #            } for item in users['items'] if item['is_closed'] is False
-        #           ]
-
-        result = [{'name': item['first_name'] + ' ' + item['last_name'],
-                   'id': item['id']
-                   } for item in users['items'] if item['is_closed'] is False and item['id'] not in self.shown_profiles
-                  ]
+        result = [
+            {'name': item['first_name'] + ' ' + item['last_name'],
+             'id': item['id']}
+            for item in users['items']
+            if item['is_closed'] is False and item[
+                'id'] not in self.shown_profiles
+        ]
 
         return result
-
 
     def get_photos(self, id):
         try:
@@ -119,7 +131,8 @@ class VkTools:
                   'v': '5.131',
                   }
         url = f'https://api.vk.com/method/{method}'
-        cities_list = requests.get(url, params=params).json()['response']['items']
+        cities_list = requests.get(url, params=params).json()[
+            'response']['items']
         return cities_list
 
 
